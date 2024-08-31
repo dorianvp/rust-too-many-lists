@@ -4,11 +4,7 @@ pub struct List {
     head: Link,
 }
 
-enum Link {
-    Empty,
-    More(Box<Node>),
-}
-
+type Link = Option<Box<Node>>;
 struct Node {
     elem: i32,
     next: Link,
@@ -16,28 +12,26 @@ struct Node {
 
 impl List {
     pub fn new() -> Self {
-        List { head: Link::Empty }
+        List { head: None }
     }
 
     pub fn push(&mut self, elem: i32) {
         /*
-        I can't just take the contents of one box and put it in another, because that would leave the first box empty.
-        So I swap the contents of the two boxes, so that the first box now contains the contents of the second box, and vice versa.
-        That's essentially what mem::replace does.
+        take() does the same as mem::replace, but looks much better
          */
         let new_node = Box::new(Node {
             elem: elem,
-            next: mem::replace(&mut self.head, Link::Empty),
+            next: self.head.take(),
         });
 
-        self.head = Link::More(new_node);
+        self.head = Some(new_node);
     }
 
     pub fn pop(&mut self) -> Option<i32> {
         // Here we use replace because match uses move semantics
-        match mem::replace(&mut self.head, Link::Empty) {
-            Link::Empty => None,
-            Link::More(node) => {
+        match self.head.take() {
+            None => None,
+            Some(node) => {
                 self.head = node.next;
                 Some(node.elem)
             }
@@ -47,9 +41,9 @@ impl List {
 
 impl Drop for List {
     fn drop(&mut self) {
-        let mut cur_link = mem::replace(&mut self.head, Link::Empty);
-        while let Link::More(mut boxed_node) = cur_link {
-            cur_link = mem::replace(&mut boxed_node.next, Link::Empty);
+        let mut cur_link = self.head.take();
+        while let Some(mut boxed_node) = cur_link {
+            cur_link = boxed_node.next.take();
         }
     }
 }

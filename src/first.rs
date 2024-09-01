@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, io::Empty, mem};
+use std::mem;
 
 pub struct List {
     head: Link,
